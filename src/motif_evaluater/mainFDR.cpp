@@ -3,7 +3,6 @@
 //
 
 #include "FDR.h"
-#include "../Global/Global.h"
 
 int main( int nargs, char* args[] ){
 
@@ -151,7 +150,7 @@ int main( int nargs, char* args[] ){
 
         fdr.write( Global::outputDirectory,
                    Global::outputFileBasename + fileExtension );
-        if( motif )		delete motif;
+        delete motif;
     }
 
     /**
@@ -162,7 +161,8 @@ int main( int nargs, char* args[] ){
             delete negSet[n];
         }
     }
-    if( bgModel ) delete bgModel;
+
+    delete bgModel;
 
     return 0;
 }

@@ -52,6 +52,7 @@ int main( int nargs, char* args[] ){
                  */
                 EM model( motif, bgModel, Global::posSequenceSet->getSequences() );
                 model.EStep();
+
                 /**
                  * Mask the given motif from the input sequence set
                  */
@@ -71,10 +72,10 @@ int main( int nargs, char* args[] ){
                 std::cout << "No artificial sequence set is generated. "
                           << "Please check your input options." << std::endl;
             }
-            if (motif) delete motif;
+            delete motif;
 
         }
-        if( bgModel )   delete bgModel;
+        delete bgModel;
     }
 
     return 0;
