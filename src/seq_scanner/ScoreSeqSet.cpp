@@ -51,11 +51,12 @@ void ScoreSeqSet::calcLogOdds(){
     // pre-calculate log odds scores given motif and bg model
 	motif_->calculateLogS( bg_->getV() );
 	float** s = motif_->getS();
-
     size_t seqN = seqSet_.size();
-
-    // todo: the parallelization does not work properly given PWM and applied EM
-//#pragma omp parallel for
+    zoops_scores_.resize(seqN);
+    z_.resize(seqN);
+    size_t s_idx = 0;
+    
+#pragma omp parallel for
 	for( size_t n = 0; n < seqN; n++ ){
 
 		size_t 	LW1 = seqSet_[n]->getL() - W + 1;
@@ -79,8 +80,9 @@ void ScoreSeqSet::calcLogOdds(){
                 z_i = i;
             }
         }
-		zoops_scores_.push_back( maxScore );
-        z_.push_back( z_i );
+		zoops_scores_[s_idx] = maxScore;
+        z_[s_idx] = z_i;
+        s_idx++;
 	}
 }
 
