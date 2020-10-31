@@ -11,6 +11,8 @@
 
 #include <sys/stat.h>	// e.g. stat
 
+#include "omptl/omptl_algorithm"
+
 #ifndef M_GAMMAl
 /** Euler's constant in high precision */
 #define M_GAMMAl 0.5772156649015328606065120900824024L
@@ -190,14 +192,14 @@ template <typename T> inline std::vector<size_t> sortIndices( const std::vector<
 
     if( descending ){
         // sort indices in descending order based on comparing values in v
-        sort( idx.begin(), idx.end(),
+        omptl::sort( idx.begin(), idx.end(),
               [&v]( size_t i1, size_t i2 ){
                   return v[i1] > v[i2];
               }
         );
     } else {
         // sort indices in ascending order based on comparing values in v
-        sort( idx.begin(), idx.end(),
+        omptl::sort( idx.begin(), idx.end(),
               [&v]( size_t i1, size_t i2 ){
                   return v[i1] < v[i2];
               }

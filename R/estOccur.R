@@ -57,7 +57,7 @@ plots   <- args$plots
 
 # preset variables
 dir     <- gsub('/$', '', dir)
-ofile   <- paste(dir, '/', prefix, ".bmscore", sep = "" )
+ofile   <- paste(dir, '/', prefix, ".count", sep = "" )
 
 ###########################
 ## For this script we need a slightly modified version of the fdrtool function.
@@ -169,7 +169,6 @@ eta0set=NULL)
 
     if( !is.null(eta0set) )  cf.out[1,3] <- eta0set		# <---- Here is what is changed by the modified version
     eta0 = cf.out[1,3]
-
 
     #### step 2 ####
 
@@ -351,10 +350,11 @@ pvt.plotlabels <- function(statistic, scale.param, eta0)
 #-----------------------------------------
 
 # plot p-value statistics using fdrtool
-plotPvalStat = function(pvalues, filename, eta0, data_eta0, rerank){
+plotPvalStat = function(pvalues, filename, eta0, data_eta0){
 
     picname = paste0(filename,".png")
     png(filename=picname, width=800, height=800)
+
     histRes <- hist(pvalues, plot=FALSE, breaks =30)
     xvals <- histRes$breaks
     yvals <- histRes$density
@@ -362,11 +362,7 @@ plotPvalStat = function(pvalues, filename, eta0, data_eta0, rerank){
     xvals <- c(xvals, 0)
     yvals <- c(0, yvals, 0)
 
-    if(rerank){
-        mainname = "Motif P-value statistics"
-    } else{
-        mainname = "Dataset P-value statistics"
-    }
+    mainname = "Motif P-value statistics"
 
     par(oma=c(0,0,0,0), mar=c(6,6.5,5,1))
 
@@ -381,7 +377,6 @@ plotPvalStat = function(pvalues, filename, eta0, data_eta0, rerank){
     mtext("P-values", side=1, line=4.5, cex = 3)
     mtext("Density", side=2, line=4, cex = 3)
 
-    #axis(1,tick =FALSE, cex.axis=2.5, line=1)
     axis(1, at=c(0,0.5,1), labels = c(0,0.5,1), tick =FALSE, cex.axis=2.5, line=1)
 
     # mark the negative regions from background sequences
@@ -391,10 +386,7 @@ plotPvalStat = function(pvalues, filename, eta0, data_eta0, rerank){
 
     cutoff=0.1      # cutoff for p-values
     abline(v=cutoff, col="red", lwd=4)
-
-    if(rerank){
-        abline(h=eta0, col="orange", lwd=5, lty=2)
-    }
+    abline(h=eta0, col="orange", lwd=5, lty=2)
 
     # color FP region
     rect(0, 0, cutoff, eta0,
@@ -421,7 +413,6 @@ plotPvalStat = function(pvalues, filename, eta0, data_eta0, rerank){
     text_cex = 2
     font = 2
     v_spacer = 0.05
-    #h_spacer = max(ypoly) * 0.04  # scale the spacer due to the range of y-axis
     h_spacer = text_cex * 0.1
 
     text(cutoff - v_spacer, eta0 + h_spacer, "TP", col="darkgreen", font=font, cex=text_cex)
@@ -437,217 +428,17 @@ plotPvalStat = function(pvalues, filename, eta0, data_eta0, rerank){
 }
 
 
-# plot TP/FP ratio vs. recall curve
-plotRRC = function(picname, recall, TFR, rerank){
-
-    # set the upper and lower region for the y-axis
-    y_upper = 100
-    y_lower = 1
-
-    # compute the area under the RRC curve (AvRec):
-    sum_area = log10(y_upper)-log10(y_lower)    # the total area
-
-    # make sure TFR does not exceed y_upper
-    TFR_modified = c()
-
-    for( i in seq(1, length(TFR))) {
-        if( TFR[i] > y_upper){
-            TFR_modified[i] <- y_upper
-        } else {
-            TFR_modified[i] <- TFR[i]
-        }
-    }
-
-    avrec = sum(diff(recall)*rollmean(log10(TFR_modified),2)) / sum_area
-
-    if(is.na(avrec)){
-        avrec = 0
-    }
-
-    avrec = round(avrec, digits=3)
-
-    if(plots){
-
-        unicolor = "darkblue"
-        cex_main_size = 3.0
-
-        #unicolor = "black"
-        #cex_main_size = 3.5
-
-        if(rerank){
-            mainname = paste0("Motif AvRec: ", avrec)
-        } else{
-            mainname = paste0("Dataset AvRec: ", avrec)
-            #mainname = paste0("Average Recall Curve, AvRec=", avrec)
-        }
-
-        # make sure that the upper border does not exceed y_upper
-        mask_upper = TFR <= y_upper
-        TFR_maskup = TFR[mask_upper]
-        recall_maskup = recall[mask_upper]
-        # plot the line when positives:negatives = 1:1
-        png( filename = paste0(picname, ".png"), width = 800, height = 800 )
-        par(oma=c(0,0,0,0), mar=c(6,6.5,5,1))
-        plot(recall_maskup, TFR_maskup,
-            main=mainname,
-            log="y",
-            xlim=c(0,1),ylim=c(y_lower,y_upper),
-            xlab="", ylab="",
-            type="l", lwd=7.5,
-            col=unicolor,
-            axes = FALSE,
-            cex.main = cex_main_size
-        )
-
-        # color the area under the curve
-        polygon(
-            c(0, recall, 1),
-            c(y_lower, pmin(TFR, y_upper), y_lower),
-            col = convertcolor(unicolor,30),
-            border = NA
-        )
-
-        mtext("Recall", side=1, line=4.5, cex = cex_main_size)
-        mtext("TP/FP Ratio", side=2, line=4, cex = cex_main_size)
-        axis(1, at=c(0,0.5,1), labels = c(0,0.5,1), tick =TRUE, cex.axis=2.5, line=0)
-        axis(2, at=c(y_lower,10,y_upper), labels = expression(10^0, 10^1, 10^2), tick=TRUE, cex.axis=2.5, line=0, las=1)
-        text(x = 0.05,y = min(max(TFR)*1.1, 90), cex = 2.0, locator(), labels = c("1:1"), col=unicolor)
-
-        if(max(TFR)>10){
-            # calculate for the case when positives: negatives = 1:10
-            # make sure that the lower border does not exceed y_lower
-            mask_lower = TFR <= y_lower*10
-            TFR_low = TFR[!mask_lower]
-            recall_low = recall[!mask_lower]
-            mask_2upper = TFR_low <= y_upper*10
-            TFR_low = TFR_low[mask_2upper]
-            recall_low = recall_low[mask_2upper]
-            # plot the line when positives:negatives = 1:10
-            par(new=T)
-            plot(recall_low, TFR_low/10,
-            main=mainname,
-            log="y",
-            xlim=c(0,1),ylim=c(y_lower,y_upper),
-            xlab="", ylab="",
-            type="l", lty=2, lwd=7.5,
-            col=convertcolor(unicolor,50),
-            axes = FALSE, cex.main = cex_main_size
-            )
-            # add label text
-            text(x = 0.05, y = min(max(TFR/10)*1.1, 70), cex = 2.0, locator(), labels = c("1:10"), col=unicolor)
-        }
-
-        if(max(TFR)>100){
-            # calculate for the case when positives: negatives = 1:100
-            # make sure that the lower border does not exceed y_lower
-            mask_lower2 = TFR <= y_lower*100
-            TFR_low2 = TFR[!mask_lower2]
-            recall_low2 = recall[!mask_lower2]
-            mask_2upper2 = TFR_low2 <= y_upper*100
-            TFR_low2 = TFR_low2[mask_2upper2]
-            recall_low2 = recall_low2[mask_2upper2]
-
-            # plot the line when positives:negatives = 1:100
-            par(new=T)
-            plot(recall_low2, TFR_low2/100,
-            main=mainname,
-            log="y",
-            xlim=c(0,1),ylim=c(y_lower,y_upper),
-            xlab="", ylab="",
-            type="l", lty=3, lwd=7.5,
-            col=convertcolor(unicolor,50),
-            axes = FALSE, cex.main = cex_main_size
-            )
-            # add labels
-            text(x = 0.05, y = min(max(TFR/100)*1.1, 55), cex = 2.0, locator(), labels = c("1:100"), col=unicolor)
-        }
-
-        box(lwd=2.5)
-        invisible(dev.off())
-
-        # export plots to .pdf file
-        pdf( file = paste0(picname, ".pdf"), width = 10, height = 10 )
-        par(oma=c(0,0,0,0), mar=c(6,6.5,5,1))
-        plot(recall_maskup, TFR_maskup,
-        main=mainname,
-        log="y",
-        xlim=c(0,1),ylim=c(y_lower,y_upper),
-        xlab="", ylab="",
-        type="l", lwd=7.5,
-        col=unicolor,
-        axes = FALSE, cex.main = cex_main_size
-        )
-        # color the area under the curve
-        polygon(
-        c(0, recall, 1),
-        c(y_lower, pmin(TFR, y_upper), y_lower),
-        col = convertcolor(unicolor,30),
-        border = NA
-        )
-
-        mtext("Recall", side=1, line=4.5, cex = 3.0)
-        mtext("TP/FP Ratio", side=2, line=4, cex = cex_main_size)
-        axis(1, at=c(0,0.5,1), labels = c(0,0.5,1), tick =TRUE, cex.axis=2.5, line=0)
-        axis(2, at=c(y_lower,10,y_upper), labels = expression(10^0, 10^1, 10^2), tick=TRUE, cex.axis=2.5, line=0, las=1)
-        text(x = 0.05,y = min(max(TFR)*1.1, 90), cex = 2.0, locator(), labels = c("1:1"), col=unicolor)
-
-        if(max(TFR)>10){
-
-            # plot the line when positives:negatives = 1:10
-            par(new=T)
-            plot(recall_low, TFR_low/10,
-            main=mainname,
-            log="y",
-            xlim=c(0,1),ylim=c(y_lower,y_upper),
-            xlab="", ylab="",
-            type="l", lty=2, lwd=7.5,
-            col=convertcolor(unicolor,50),
-            axes = FALSE, cex.main = cex_main_size
-            )
-            # add label text
-            text(x = 0.05, y = min(max(TFR/10)*1.1, 70), cex = 2.0, locator(), labels = c("1:10"), col=unicolor)
-        }
-
-        if(max(TFR)>100){
-            # plot the line when positives:negatives = 1:100
-            par(new=T)
-            plot(recall_low2, TFR_low2/100,
-            main=mainname,
-            log="y",
-            xlim=c(0,1),ylim=c(y_lower,y_upper),
-            xlab="", ylab="",
-            type="l", lty=3, lwd=7.5,
-            col=convertcolor(unicolor,50),
-            axes = FALSE, cex.main = cex_main_size
-            )
-            # add labels
-            text(x = 0.05, y = min(max(TFR/100)*1.1, 55), cex = 2.0, locator(), labels = c("1:100"), col=unicolor)
-        }
-
-        box(lwd=2.5)
-        invisible(dev.off())
-    }
-    # access the avrec value
-    return( list(avrec=avrec) )
-}
-
 #--------------------------
 #
 # motif evaluater function
 #
 #--------------------------
 
-evaluateMotif = function( pvalues, filename, rerank, data_eta0 ){
+evaluateMotif = function( pvalues, filename, data_eta0 ){
 
-    if( rerank ){
-        eta0set = NULL
-        pn_pval <- paste0( filename, '_motifPval' )
-        pn_rrc  <- paste0( filename, '_motifRRC' )
-    } else {
-        eta0set = data_eta0
-        pn_pval <- paste0( filename, '_dataPval' )
-        pn_rrc  <- paste0( filename, '_dataRRC' )
-    }
+
+    eta0set = NULL
+    pn_pval <- paste0( filename, '_motifPval' )
 
     if(max(pvalues) > 1 | min(pvalues) <= 0){
         stop("Error: input p-values must all be in the range 0 to 1!")
@@ -658,6 +449,7 @@ evaluateMotif = function( pvalues, filename, rerank, data_eta0 ){
 
     # get the global fdr values and estimate of the weight eta0 of the null component
     eta0 	<- result_fdrtool$param[3]
+
     if( eta0 >= 1 ){
         print("Warning: estimated eta0 = 1. No positives in the input set.")
         eta0    = 0.9999
@@ -692,16 +484,12 @@ evaluateMotif = function( pvalues, filename, rerank, data_eta0 ){
     tfr[cutoff] = 1
 
     # plot p-value density plot
-    if(plots) plotPvalStat(pvalues, filename=pn_pval, eta0=eta0, data_eta0=data_eta0, rerank)
+    if(plots) plotPvalStat(pvalues, filename=pn_pval, eta0=eta0, data_eta0=data_eta0)
 
-    if(eta0 < data_eta0) eta0 = data_eta0
-
-    # plot TP/FP vs. recall plot
-    rrc     = plotRRC(pn_rrc, recall, tfr, rerank)
-    avrec   = rrc$avrec     # get AURRC score
+    #if(eta0 < data_eta0) eta0 = data_eta0
 
     # return to the results
-    return( list(avrec=avrec, eta0=eta0) )
+    return( list(avrec=0, eta0=eta0) )
 
 }
 
@@ -710,10 +498,10 @@ evaluateMotif = function( pvalues, filename, rerank, data_eta0 ){
 # main function
 #
 #--------------
-file_suffix = ".zoops.stats"
+file_suffix = ".occurrence"
 
 results = c()
-resultTitle = paste0(c("TF", "#", "d_avrec", "d_occur", "m_avrec", "m_occur"), collapse="\t")
+resultTitle = paste0(c("TF", "#", "occurrence", "ratio"), collapse="\t")
 results = c(results, resultTitle)
 
 if( length(Sys.glob(paste(c(dir, "/", prefix, "*", file_suffix), collapse=""))) ==0 ){
@@ -738,22 +526,12 @@ for (f in Sys.glob(paste(c(dir, "/", prefix, "*", file_suffix), collapse=""))) {
     # read in p-values from file
     first_row   <- read.table(f, nrows=1)
     stats       <- read.table(f, skip=1)
-    pvalues     <- stats$V5
-    #pvalues     <- unique(stats$V5)
-    mfold       <- as.numeric(first_row[6])
-    occurrence  <- as.numeric(first_row[7])
+    #pvalues     <- stats$V1
+    pvalues     <- stats$V6
 
     # check if any p-values are missing
     if( sum(is.na(pvalues)) > 0 ){
         stop("Error: Some of the input p-values are missing!",filename)
-    }
-
-    if( is.na(mfold) ){
-        stop("Error: mfold value is missing in the input file!")
-    }
-
-    if( is.na(occurrence) ){
-        stop("Error: Occurrence value is missing in the input file!")
     }
 
     # avoid the rounding errors when p-value = 0 or p-value > 1
@@ -761,32 +539,23 @@ for (f in Sys.glob(paste(c(dir, "/", prefix, "*", file_suffix), collapse=""))) {
         if( pvalues[i] > 1 ){
             pvalues[i] = 1
         } else if (pvalues[i] <= 0 ){
-            pvalues[i] = 1e-10
+            pvalues[i] = 1e-6
         }
     }
 
-    # calculate eta0 based on negative/postitive ratio
-    data_eta0 = mfold / ( 1+mfold )
+    new_pvalues = sort(pvalues, decreasing = TRUE)
 
-    # evaluate motif on the dataset
-    eval_dataset    = evaluateMotif(pvalues, filename = filename, rerank=FALSE, data_eta0=data_eta0)
-    data_occur      = round(occurrence, digits=4)               # acquire motif occurrence
-    data_avrec      = eval_dataset$avrec                        # acquire AvRec score
+    # calculate eta0 based on negative/postitive ratio
+    data_eta0 = 0.91 # mfold / ( 1+mfold ).+
 
     # evaluate motif indenpendent from dataset
-    eval_motif      = evaluateMotif(pvalues, filename = filename, rerank=TRUE, data_eta0=data_eta0)
+    eval_motif      = evaluateMotif(new_pvalues, filename = filename, data_eta0=data_eta0)
     motif_eta0      = eval_motif$eta0
-    motif_occur     = round((1-motif_eta0)*(1+mfold), digits=4) # calculate motif occurrence
-    motif_avrec     = eval_motif$avrec                          # acquire AvRec score
+    motif_ratio     = round(1-motif_eta0, 4)
+    motif_count     = as.integer((1-motif_eta0) * length(pvalues))
 
     # output the result
-    resultString = paste0(c(prefix, motif_num, data_avrec, data_occur, motif_avrec, motif_occur), collapse="\t")
-
-    if(web){
-        message(motif_occur)
-    }
-
-    #print( resultString )
+    resultString = paste0(c(prefix, motif_num, motif_count, motif_ratio), collapse="\t")
 
     results = c(results, resultString)
 }

@@ -55,7 +55,7 @@ void ScoreSeqSet::calcLogOdds(){
     zoops_scores_.resize(seqN);
     z_.resize(seqN);
     size_t s_idx = 0;
-    
+
 #pragma omp parallel for
 	for( size_t n = 0; n < seqN; n++ ){
 
@@ -65,6 +65,7 @@ void ScoreSeqSet::calcLogOdds(){
 		float 	maxScore = -FLT_MAX;
 
         size_t z_i = 0;
+        //todo: this can be speed up
 		for( size_t i = 0; i < LW1; i++ ){
 			float logOdds = 0.0f;
 			for( size_t j = 0; j < W; j++ ){
@@ -359,7 +360,6 @@ void ScoreSeqSet::write( char* odir, std::string basename,
                     // start:end:score:strand:sequence_matching
                     end = i + motif_->getW();
 
-                
                     ofile << ( ( i < seqlen ) ? '+' : '-' ) << '\t'
                           << i+1 << ".." << end << '\t';
                     for( size_t m = i; m < end; m++ ){
@@ -373,7 +373,6 @@ void ScoreSeqSet::write( char* odir, std::string basename,
                 }
         }
     } else {
-
         assert( pval_is_calulated_ );
         // add a header to the results
         ofile << "seq\tlength\tstrand\tstart..end\tpattern\tp-value\te-value\tlogOddsScore" << std::endl;

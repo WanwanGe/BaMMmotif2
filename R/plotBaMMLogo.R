@@ -740,8 +740,8 @@ hoSeqLogo <- function( filename, order, useFreqs=F, base=2, icColumnScale=TRUE,
     
     if( is.null( ylim ) ){
       if( order == 0 ) { ylim <- c( -0.5, 2 ) }  	# for order 0
-      if( order == 1 ) { ylim <- c( -0.4, 1 ) }     # for order 1
-      if( order == 2 ) { ylim <- c( -0.3, 0.5 ) }	# for order 2
+      if( order == 1 ) { ylim <- c( -0.25, 0.45 ) }   # for order 1
+      if( order == 2 ) { ylim <- c( -0.3, 0.3 ) }	# for order 2
       if( order >= 3 ) { ylim <- c( -0.2, 0.2 ) }	# for orders higher than 3
     }
     ylab <-""
@@ -1987,7 +1987,6 @@ for( file in Sys.glob(full_glob) ){
     width      <- png_width
     height     <- stamp_height
     ending     <- paste0("_stamp",ending)
-
     }
     if(revComp && order == 0){
     revComp = TRUE
@@ -2000,10 +1999,10 @@ for( file in Sys.glob(full_glob) ){
              icLetterScale=icLetterScale, xaxis=xaxis, yaxis=yaxis,
              xfontsize=xfontsize, yfontsize=yfontsize, alpha=alpha,
              cex=4, lwd=4 ,revComp=revComp, plot_title=plot_title )
-
     dev.off()
 
-    if( web && order == 0 ){
+    #if( web && order == 0 ){
+    if( web ){
     # add revcomp and stamp versions to the original logo in web mode
 
     # 1. revComp with axis

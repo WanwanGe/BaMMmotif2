@@ -22,6 +22,7 @@ link_libraries (${Boost_LIBRARIES})
 #endif()
 #include_directories (${EIGEN3_INCLUDE_DIR})
 
+include_directories (src/omptl)
 
 # set the version of BaMM!motif
 set (BAMMMOTIF_MAJOR_VERSION 2)

@@ -182,6 +182,7 @@ void SeqGenerator::rescale_kmer_frequency( Sequence* refSeq ) {
     kmer_freq_is_rescaled_ = true;
 }
 
+
 // generate negative sequences based on k-mer frequencies, given m-fold
 std::vector<std::unique_ptr<Sequence>> SeqGenerator::sample_bgset_by_fold(size_t fold){
 

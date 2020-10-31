@@ -11,7 +11,7 @@ EM::EM( Motif* motif, BackgroundModel* bgModel,
 	seqs_       = seqs;
 
     // get motif (hyper-)parameters from motif class
-	K_          = Global::modelOrder;
+	K_          = Global::modelOrder;   // get motif order
 	W_          = motif_->getW();
 	s_          = motif_->getS();
 	A_          = motif_->getA();
@@ -35,12 +35,11 @@ EM::EM( Motif* motif, BackgroundModel* bgModel,
 		}
 	}
 
-    // todo: for positional prior
+    // for positional prior
     beta1_      = 5;                // a hyper-parameter for estimating the positional prior
     beta2_      = 1000;             // for method 2 and 3
     N0_         = 0.f;
-
-    size_t LW1_ = seqs_[0]->getL()-W_+1;
+    size_t LW1_ = seqs_[0]->getL()-W_+1;    // limited for input sequences with the same length
     pi_         = ( float* )calloc( LW1_+1, sizeof( float ) );
     b_vector_   = Eigen::VectorXf::Zero( LW1_ );
     si_         = Eigen::VectorXf::Zero( LW1_ );
@@ -84,10 +83,11 @@ int EM::optimize(){
     // initialized positional priors
     updatePrior();
 
-    // todo: for positional prior
-    // todo:=====================================================
+    // =====================================================
+    // for positional prior
     if( Global::optimizePos ) {
         // pre-define hyper-parameters for optimizing position priors
+        // todo: limited to input sequences with the same length
         size_t LW1 = seqs_[0]->getL()-W_+1;
 
         norm_ = 0.0f;
@@ -101,7 +101,7 @@ int EM::optimize(){
             pi_[i] /= norm_;
         }
     }
-    // todo:=====================================================
+    // =====================================================
 
     // iterate over
     size_t iteration = 0;
@@ -125,18 +125,18 @@ int EM::optimize(){
         }
 
         // optimize hyper-parameter q in the first step
-        if( Global::optimizeQ and iteration <= 0 ) {
+        if( Global::optimizeQ and iteration == 0 ) {
             optimizeQ();
             updatePrior();
         }
 
-        // todo: optimize positional prior pos
-        // todo:=====================================================
-        // note: this only works for sequences with the same length
-        if( Global::optimizePos /*and iteration <= 0*/ ){
+        // =====================================================
+        // optimize positional prior
+        // todo: this only works for sequences with the same length
+        if( Global::optimizePos /*and iteration == 0*/ ){
             optimizePos();
         }
-        // todo:=====================================================
+        // =====================================================
 
         // check parameter difference for convergence
         float v_diff = 0.0f;
@@ -164,7 +164,7 @@ int EM::optimize(){
             iterate = false;
         }
 
-        // todo: for making a movie out of all iterations
+        // for making a movie out of all iterations
         if( Global::makeMovie ) {
             // calculate probabilities
             motif_->calculateP();
@@ -176,7 +176,6 @@ int EM::optimize(){
             motif_->write(odir, "movie_clap" + std::to_string(iteration));
         }
 
-        // todo:
         if( Global::makeMovie and Global::savePi ){
             // pre-define hyper-parameters for optimizing position priors
             size_t LW1 = seqs_[0]->getL()-W_+1;
@@ -189,7 +188,7 @@ int EM::optimize(){
             }
         }
 
-        // todo: print out for checking
+        // print out for checking
         if( Global::debug ) {
             motif_->calculateP();
             printR();
@@ -202,7 +201,7 @@ int EM::optimize(){
     motif_->calculateP();
 
     auto t1_wall = std::chrono::high_resolution_clock::now();
-    auto t_diff = std::chrono::duration_cast<std::chrono::duration<double>>(t1_wall-t0_wall);
+    auto t_diff = std::chrono::duration_cast<std::chrono::duration<double>>(t1_wall - t0_wall);
     std::cout << "\n--- Runtime for EM: " << t_diff.count()
               << " seconds (" << std::to_string(iteration)
               << " iterations) ---\n";
@@ -216,7 +215,7 @@ void EM::EStep(){
 
     motif_->calculateLinearS( bgModel_->getV() );
 
-    // calculate responsibilities r at all LW1 positions on sequence n
+    // calculate responsibilities r at all the LW1 positions on sequence n
     // n runs over all sequences
 #pragma omp parallel for reduction(+:llikelihood)
     for( size_t n = 0; n < seqs_.size(); n++ ){
@@ -227,7 +226,7 @@ void EM::EStep(){
         float 	normFactor = 0.f;
 
         // initialize r_[n][i] and prior_[n][i]:
-        // note here:   r_[n][0] and prior_[n][0] are for motif is absent
+        // note here:   r_[n][0] and prior_[n][0] are for sequences without motif
         //              and the indices of r_[n][i] is reverted, which means:
         //              r_[n][i] is the weight for motif being at position L-i on sequence n
         //              the purpose of doing the reverting is to improve the computation speed
@@ -319,7 +318,7 @@ void EM::updatePrior(){
     for( size_t n = 0; n < seqs_.size(); n++ ){
         size_t 	L = seqs_[n]->getL();
         size_t 	LW1 = L - W_ + 1;
-        prior_[n][0] = 1.0f - q_;                         // probability of having no motif on the sequence
+        prior_[n][0] = 1.0f - q_;                       // probability of having no motif on the sequence
         float pos_i = q_ / static_cast<float>( LW1 );   // probability of having a motif at position i on the sequence
         for( size_t i = 1; i <= L; i++ ){
             prior_[n][i] = pos_i;
@@ -556,7 +555,7 @@ int EM::mask(){
         // n runs over all sequences
 #pragma omp parallel for reduction(+:llikelihood)
         for( size_t n = 0; n < seqs_.size(); n++ ){
-            if(ridx[n].size() > 0) {
+            if( ridx[n].size() > 0 ) {
                 size_t *kmer = seqs_[n]->getKmer();
                 float normFactor = 0.f;
 
